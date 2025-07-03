@@ -213,25 +213,51 @@ class PriceEstimatorApp:
         file_path = filedialog.asksaveasfilename(defaultextension=".pdf", filetypes=[("PDF files", "*.pdf")])
         if not file_path:
             return
+        
+        # Generate sequential invoice number (using timestamp for uniqueness)
+        import time
+        invoice_number = f"INV-{int(time.time())}"
+        
         pdf = FPDF()
         pdf.add_page()
-        pdf.set_font("Arial", size=12)
-        pdf.cell(200, 10, txt="Precision Build Pros - Estimate", ln=True, align="C")
-        pdf.ln(5)
+        
+        # Business Header - Centered
+        pdf.set_font("Arial", 'B', 16)
+        pdf.cell(0, 10, txt="Precision Build Pros - Estimate", ln=True, align="C")
         pdf.set_font("Arial", size=10)
-        pdf.cell(0, 10, txt=f"Client: {self.client_name_var.get()}", ln=True)
-        pdf.cell(0, 10, txt=f"Address: {self.client_address_var.get()}", ln=True)
-        pdf.cell(0, 10, txt=f"Phone: {self.client_phone_var.get()}", ln=True)
-        pdf.cell(0, 10, txt=f"Email: {self.client_email_var.get()}", ln=True)
-        pdf.ln(5)
+        pdf.cell(0, 6, txt="619 Shun Pike, Cottontown, TN 37048", ln=True, align="C")
+        pdf.cell(0, 6, txt="precisionbuildprosllc@gmail.com", ln=True, align="C")
+        pdf.cell(0, 6, txt="615-587-0757", ln=True, align="C")
+        
+        # Invoice number - Top right
+        pdf.set_xy(-60, 15)
         pdf.set_font("Arial", 'B', 10)
-        pdf.cell(0, 10, txt="Services:", ln=True)
+        pdf.cell(0, 6, txt=f"Invoice #: {invoice_number}", ln=True, align="R")
+        
+        pdf.ln(10)
+        
+        # Client Information
+        pdf.set_font("Arial", 'B', 12)
+        pdf.cell(0, 8, txt="Client Information:", ln=True)
+        pdf.set_font("Arial", size=10)
+        pdf.cell(0, 6, txt=f"Client: {self.client_name_var.get()}", ln=True)
+        pdf.cell(0, 6, txt=f"Address: {self.client_address_var.get()}", ln=True)
+        pdf.cell(0, 6, txt=f"Phone: {self.client_phone_var.get()}", ln=True)
+        pdf.cell(0, 6, txt=f"Email: {self.client_email_var.get()}", ln=True)
+        pdf.ln(8)
+        
+        # Services
+        pdf.set_font("Arial", 'B', 12)
+        pdf.cell(0, 8, txt="Services:", ln=True)
         pdf.set_font("Arial", size=10)
         for s in self.services_list:
-            pdf.cell(0, 8, txt=f"- {s['category']} | {s['service']} | Qty: {s['quantity']} {s['unit']} | Rate: ${s['average_price']:.2f} | Subtotal: ${s['estimated_cost']:.2f}", ln=True)
-        pdf.ln(5)
-        pdf.set_font("Arial", 'B', 12)
+            pdf.cell(0, 6, txt=f"- {s['category']} | {s['service']} | Qty: {s['quantity']} {s['unit']} | Rate: ${s['average_price']:.2f} | Subtotal: ${s['estimated_cost']:.2f}", ln=True)
+        pdf.ln(8)
+        
+        # Total
+        pdf.set_font("Arial", 'B', 14)
         pdf.cell(0, 10, txt=f"Total Estimate: ${self.calculate_total():,.2f}", ln=True)
+        
         try:
             pdf.output(file_path)
             messagebox.showinfo("Exported", f"Estimate exported to {file_path}")
