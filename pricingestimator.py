@@ -24,6 +24,9 @@ pricing = {
     "Drywall": {
         "Drywall install (remove & replace) (sqft)": (2.5, 2.5),
         "Drywall install (new construction) (per sheet)": (60, 60),
+        "Minor drywall repairs (per hour)": (25, 25),
+        "Drywall patches small (sqft)": (2.5, 5),
+        "Drywall patches medium to large (sqft)": (3.5, 5),
     },
     "Trim": {
         "Window trim (LF)": (4, 8),
@@ -37,9 +40,22 @@ pricing = {
         "Paint wall (sqft)": (2.5, 3.5),
         "Paint ceiling (sqft)": (1, 2.5),
         "Paint trim (LF)": (1, 3),
+        "Painting interior doors (per door)": (45, 45),
     },
     "Framing": {
         "Interior framing (sqft)": (7, 16),
+    },
+    "Insulation": {
+        "Insulation install (sqft)": (1, 1),
+    },
+    "Sheathing": {
+        "Sheathing install (sqft)": (1, 3),
+    },
+    "Sealing Services": {
+        "Sealing tile (sqft)": (1, 3),
+        "Sealing countertops standard sizes (per job)": (100, 200),
+        "Sealing countertops small sizes (per job)": (50, 100),
+        "Sealing driveways (sqft)": (0.20, 0.20),
     }
 }
 
