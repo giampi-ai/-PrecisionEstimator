@@ -213,7 +213,10 @@ class PriceEstimatorApp:
         
         # Generate sequential invoice number (using timestamp for uniqueness)
         import time
+        from datetime import datetime
+        
         invoice_number = f"INV-{int(time.time())}"
+        current_date = datetime.now().strftime("%B %d, %Y")
         
         # Create default filename using customer name and invoice number
         customer_name = self.client_name_var.get().strip()
@@ -249,7 +252,12 @@ class PriceEstimatorApp:
         pdf.set_font("Arial", 'B', 10)
         pdf.cell(0, 6, txt=f"Invoice #: {invoice_number}", ln=True, align="R")
         
-        pdf.ln(10)
+        # Estimate Date - Left aligned
+        pdf.set_xy(10, 50)
+        pdf.set_font("Arial", size=11)
+        pdf.cell(0, 8, txt=f"Estimate Date: {current_date}", ln=True, align="L")
+        
+        pdf.ln(8)
         
         # Client Information
         pdf.set_font("Arial", 'B', 12)
@@ -272,6 +280,11 @@ class PriceEstimatorApp:
         # Total
         pdf.set_font("Arial", 'B', 14)
         pdf.cell(0, 10, txt=f"Total Estimate: ${self.calculate_total():,.2f}", ln=True)
+        
+        # Validity Note - Bottom of document
+        pdf.ln(15)
+        pdf.set_font("Arial", 'I', 9)
+        pdf.cell(0, 6, txt="Note: This estimate is valid for 30 days from the date issued.", ln=True, align="L")
         
         try:
             pdf.output(file_path)
