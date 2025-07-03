@@ -210,13 +210,28 @@ class PriceEstimatorApp:
         if not self.services_list:
             messagebox.showerror("No Services", "Add at least one service before exporting.")
             return
-        file_path = filedialog.asksaveasfilename(defaultextension=".pdf", filetypes=[("PDF files", "*.pdf")])
-        if not file_path:
-            return
         
         # Generate sequential invoice number (using timestamp for uniqueness)
         import time
         invoice_number = f"INV-{int(time.time())}"
+        
+        # Create default filename using customer name and invoice number
+        customer_name = self.client_name_var.get().strip()
+        if customer_name:
+            # Clean customer name for filename (remove invalid characters)
+            clean_name = "".join(c for c in customer_name if c.isalnum() or c in (' ', '-', '_')).rstrip()
+            clean_name = clean_name.replace(' ', '_')
+            default_filename = f"{clean_name}_{invoice_number}.pdf"
+        else:
+            default_filename = f"Estimate_{invoice_number}.pdf"
+        
+        file_path = filedialog.asksaveasfilename(
+            defaultextension=".pdf", 
+            filetypes=[("PDF files", "*.pdf")],
+            initialvalue=default_filename
+        )
+        if not file_path:
+            return
         
         pdf = FPDF()
         pdf.add_page()
