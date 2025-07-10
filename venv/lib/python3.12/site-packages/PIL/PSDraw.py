@@ -17,12 +17,9 @@
 from __future__ import annotations
 
 import sys
-from typing import IO
+from typing import TYPE_CHECKING
 
 from . import EpsImagePlugin
-
-TYPE_CHECKING = False
-
 
 ##
 # Simple PostScript graphics interface.
@@ -31,12 +28,15 @@ TYPE_CHECKING = False
 class PSDraw:
     """
     Sets up printing to the given file. If ``fp`` is omitted,
-    ``sys.stdout.buffer`` is assumed.
+    ``sys.stdout.buffer`` or ``sys.stdout`` is assumed.
     """
 
-    def __init__(self, fp: IO[bytes] | None = None) -> None:
+    def __init__(self, fp=None):
         if not fp:
-            fp = sys.stdout.buffer
+            try:
+                fp = sys.stdout.buffer
+            except AttributeError:
+                fp = sys.stdout
         self.fp = fp
 
     def begin_document(self, id: str | None = None) -> None:

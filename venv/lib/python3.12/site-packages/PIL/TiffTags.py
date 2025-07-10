@@ -32,24 +32,17 @@ class _TagInfo(NamedTuple):
 class TagInfo(_TagInfo):
     __slots__: list[str] = []
 
-    def __new__(
-        cls,
-        value: int | None = None,
-        name: str = "unknown",
-        type: int | None = None,
-        length: int | None = None,
-        enum: dict[str, int] | None = None,
-    ) -> TagInfo:
+    def __new__(cls, value=None, name="unknown", type=None, length=None, enum=None):
         return super().__new__(cls, value, name, type, length, enum or {})
 
-    def cvt_enum(self, value: str) -> int | str:
+    def cvt_enum(self, value):
         # Using get will call hash(value), which can be expensive
         # for some types (e.g. Fraction). Since self.enum is rarely
         # used, it's usually better to test it first.
         return self.enum.get(value, value) if self.enum else value
 
 
-def lookup(tag: int, group: int | None = None) -> TagInfo:
+def lookup(tag, group=None):
     """
     :param tag: Integer tag number
     :param group: Which :py:data:`~PIL.TiffTags.TAGS_V2_GROUPS` to look in
@@ -96,7 +89,7 @@ DOUBLE = 12
 IFD = 13
 LONG8 = 16
 
-_tags_v2: dict[int, tuple[str, int, int] | tuple[str, int, int, dict[str, int]]] = {
+_tags_v2 = {
     254: ("NewSubfileType", LONG, 1),
     255: ("SubfileType", SHORT, 1),
     256: ("ImageWidth", LONG, 1),
@@ -240,7 +233,7 @@ _tags_v2: dict[int, tuple[str, int, int] | tuple[str, int, int, dict[str, int]]]
     50838: ("ImageJMetaDataByteCounts", LONG, 0),  # Can be more than one
     50839: ("ImageJMetaData", UNDEFINED, 1),  # see Issue #2006
 }
-_tags_v2_groups = {
+TAGS_V2_GROUPS = {
     # ExifIFD
     34665: {
         36864: ("ExifVersion", UNDEFINED, 1),
@@ -288,7 +281,7 @@ _tags_v2_groups = {
 
 # Legacy Tags structure
 # these tags aren't included above, but were in the previous versions
-TAGS: dict[int | tuple[int, int], str] = {
+TAGS = {
     347: "JPEGTables",
     700: "XMP",
     # Additional Exif Info
@@ -433,10 +426,9 @@ TAGS: dict[int | tuple[int, int], str] = {
 }
 
 TAGS_V2: dict[int, TagInfo] = {}
-TAGS_V2_GROUPS: dict[int, dict[int, TagInfo]] = {}
 
 
-def _populate() -> None:
+def _populate():
     for k, v in _tags_v2.items():
         # Populate legacy structure.
         TAGS[k] = v[0]
@@ -446,8 +438,9 @@ def _populate() -> None:
 
         TAGS_V2[k] = TagInfo(k, *v)
 
-    for group, tags in _tags_v2_groups.items():
-        TAGS_V2_GROUPS[group] = {k: TagInfo(k, *v) for k, v in tags.items()}
+    for tags in TAGS_V2_GROUPS.values():
+        for k, v in tags.items():
+            tags[k] = TagInfo(k, *v)
 
 
 _populate()

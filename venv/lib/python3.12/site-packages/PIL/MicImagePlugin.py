@@ -26,7 +26,7 @@ from . import Image, TiffImagePlugin
 
 
 def _accept(prefix: bytes) -> bool:
-    return prefix.startswith(olefile.MAGIC)
+    return prefix[:8] == olefile.MAGIC
 
 
 ##
@@ -54,7 +54,7 @@ class MicImageFile(TiffImagePlugin.TiffImageFile):
         self.images = [
             path
             for path in self.ole.listdir()
-            if path[1:] and path[0].endswith(".ACI") and path[1] == "Image"
+            if path[1:] and path[0][-4:] == ".ACI" and path[1] == "Image"
         ]
 
         # if we didn't find any images, this is probably not
@@ -70,10 +70,15 @@ class MicImageFile(TiffImagePlugin.TiffImageFile):
         self.__fp = self.fp
         self.seek(0)
 
-    def seek(self, frame: int) -> None:
+    def seek(self, frame):
         if not self._seek_check(frame):
             return
-        filename = self.images[frame]
+        try:
+            filename = self.images[frame]
+        except IndexError as e:
+            msg = "no such frame"
+            raise EOFError(msg) from e
+
         self.fp = self.ole.openstream(filename)
 
         TiffImagePlugin.TiffImageFile._open(self)

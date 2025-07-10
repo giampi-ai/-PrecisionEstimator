@@ -1,6 +1,4 @@
-#!/bin/sh
-'''exec' "/home/giampiero/Pricing Estimator App/venv/bin/python3" "$0" "$@"
-' '''
+#!/home/giampiero/Development/PrecisionEstimator/venv/bin/python3
 # -*- coding: utf-8 -*-
 import re
 import sys

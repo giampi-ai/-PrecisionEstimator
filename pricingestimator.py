@@ -1,10 +1,9 @@
-import tkinter as tk
-from tkinter import ttk
+import ttkbootstrap as tb
+from ttkbootstrap.constants import *
 import json
 from tkinter import messagebox, filedialog
-from reportlab.lib.pagesizes import letter
-from reportlab.pdfgen import canvas
 from fpdf import FPDF
+import tkinter as tk  # Add this import for tk.Listbox
 
 # Pricing dictionary (LF = linear foot, sqft = square feet)
 pricing = {
@@ -61,96 +60,130 @@ pricing = {
 
 class PriceEstimatorApp:
     def __init__(self, root):
+        # --- Variable Initialization ---
+        self.client_name_var = tb.StringVar()
+        self.client_address_var = tb.StringVar()
+        self.client_phone_var = tb.StringVar()
+        self.client_email_var = tb.StringVar()
+        self.category_var = tb.StringVar()
+        self.service_var = tb.StringVar()
+        self.quantity_var = tb.StringVar()
+        self.unit_var = tb.StringVar(value="sqft")
+        self.services_list = []
+
         self.root = root
         self.root.title("Precision Build Pros - Price Estimator")
-        self.root.geometry("900x700")
+        self.root.geometry("950x750")
+        self.root.resizable(True, True)
+        self.root.option_add("*Font", "Arial 11")
 
-        # Client info variables
-        self.client_name_var = tk.StringVar()
-        self.client_address_var = tk.StringVar()
-        self.client_phone_var = tk.StringVar()
-        self.client_email_var = tk.StringVar()
+        # Main container frame using grid
+        self.main_frame = tb.Frame(self.root)
+        self.main_frame.grid(row=0, column=0, sticky="nsew")
+        self.root.rowconfigure(0, weight=1)
+        self.root.columnconfigure(0, weight=1)
 
-        self.category_var = tk.StringVar()
-        self.service_var = tk.StringVar()
-        self.quantity_var = tk.StringVar()
-        self.unit_var = tk.StringVar(value="sqft")
+        # --- Header ---
+        self.header = tb.Label(self.main_frame, text="Precision Build Pros - Price Estimator", font=("Arial", 18, "bold"), bootstyle="primary", anchor="center")
+        self.header.grid(row=0, column=0, columnspan=2, sticky="ew", pady=(18, 8), padx=18)
 
-        self.services_list = []  # List of dicts: {category, service, quantity, unit, price}
+        # --- Client Info ---
+        self.client_frame = tb.Labelframe(self.main_frame, text="Client Information", bootstyle="primary")
+        self.client_frame.grid(row=1, column=0, columnspan=2, sticky="ew", padx=18, pady=(0, 8), ipadx=8, ipady=8)
+        self.client_frame.columnconfigure(1, weight=1)
+        self.client_frame.columnconfigure(3, weight=1)
+        tb.Label(self.client_frame, text="Name:").grid(column=0, row=0, sticky="w", padx=5, pady=2)
+        tb.Entry(self.client_frame, textvariable=self.client_name_var, width=30).grid(column=1, row=0, sticky="ew", padx=5, pady=2)
+        tb.Label(self.client_frame, text="Address:").grid(column=0, row=1, sticky="w", padx=5, pady=2)
+        tb.Entry(self.client_frame, textvariable=self.client_address_var, width=30).grid(column=1, row=1, sticky="ew", padx=5, pady=2)
+        tb.Label(self.client_frame, text="Phone:").grid(column=2, row=0, sticky="w", padx=5, pady=2)
+        tb.Entry(self.client_frame, textvariable=self.client_phone_var, width=20).grid(column=3, row=0, sticky="ew", padx=5, pady=2)
+        tb.Label(self.client_frame, text="Email:").grid(column=2, row=1, sticky="w", padx=5, pady=2)
+        tb.Entry(self.client_frame, textvariable=self.client_email_var, width=20).grid(column=3, row=1, sticky="ew", padx=5, pady=2)
 
-        self.create_widgets()
-
-    def create_widgets(self):
-        # --- Client Info Frame ---
-        client_frame = ttk.LabelFrame(self.root, text="Client Information")
-        client_frame.grid(column=0, row=0, columnspan=3, padx=10, pady=10, sticky="ew")
-        client_frame.columnconfigure(1, weight=1)
-
-        ttk.Label(client_frame, text="Name:").grid(column=0, row=0, sticky="w", padx=5, pady=2)
-        ttk.Entry(client_frame, textvariable=self.client_name_var, width=30).grid(column=1, row=0, sticky="ew", padx=5, pady=2)
-        ttk.Label(client_frame, text="Address:").grid(column=0, row=1, sticky="w", padx=5, pady=2)
-        ttk.Entry(client_frame, textvariable=self.client_address_var, width=30).grid(column=1, row=1, sticky="ew", padx=5, pady=2)
-        ttk.Label(client_frame, text="Phone:").grid(column=2, row=0, sticky="w", padx=5, pady=2)
-        ttk.Entry(client_frame, textvariable=self.client_phone_var, width=20).grid(column=3, row=0, sticky="ew", padx=5, pady=2)
-        ttk.Label(client_frame, text="Email:").grid(column=2, row=1, sticky="w", padx=5, pady=2)
-        ttk.Entry(client_frame, textvariable=self.client_email_var, width=20).grid(column=3, row=1, sticky="ew", padx=5, pady=2)
-
-        # --- Service Entry Frame ---
-        service_frame = ttk.LabelFrame(self.root, text="Add Service")
-        service_frame.grid(column=0, row=1, columnspan=3, padx=10, pady=10, sticky="ew")
-        service_frame.columnconfigure(1, weight=1)
-
-        ttk.Label(service_frame, text="Category:").grid(column=0, row=0, padx=5, pady=5, sticky="w")
-        self.category_cb = ttk.Combobox(service_frame, textvariable=self.category_var, values=list(pricing.keys()), state="readonly")
+        # --- Service Entry ---
+        self.service_frame = tb.Labelframe(self.main_frame, text="Add Service", bootstyle="info")
+        self.service_frame.grid(row=2, column=0, columnspan=2, sticky="ew", padx=18, pady=(0, 8), ipadx=8, ipady=8)
+        self.service_frame.columnconfigure(1, weight=1)
+        tb.Label(self.service_frame, text="Category:").grid(column=0, row=0, padx=5, pady=5, sticky="w")
+        self.category_cb = tb.Combobox(self.service_frame, textvariable=self.category_var, values=list(pricing.keys()), state="readonly")
         self.category_cb.grid(column=1, row=0, padx=5, pady=5, sticky="ew")
         self.category_cb.bind("<<ComboboxSelected>>", self.update_services)
-
-        ttk.Label(service_frame, text="Service:").grid(column=0, row=1, padx=5, pady=5, sticky="w")
-        self.service_cb = ttk.Combobox(service_frame, textvariable=self.service_var, state="readonly")
+        tb.Label(self.service_frame, text="Service:").grid(column=0, row=1, padx=5, pady=5, sticky="w")
+        self.service_cb = tb.Combobox(self.service_frame, textvariable=self.service_var, state="readonly")
         self.service_cb.grid(column=1, row=1, padx=5, pady=5, sticky="ew")
-
-        ttk.Label(service_frame, text="Quantity:").grid(column=0, row=2, padx=5, pady=5, sticky="w")
-        self.quantity_entry = ttk.Entry(service_frame, textvariable=self.quantity_var)
+        self.service_cb.bind("<<ComboboxSelected>>", self.update_unit_options)
+        tb.Label(self.service_frame, text="Quantity:").grid(column=0, row=2, padx=5, pady=5, sticky="w")
+        self.quantity_entry = tb.Entry(self.service_frame, textvariable=self.quantity_var)
         self.quantity_entry.grid(column=1, row=2, padx=5, pady=5, sticky="ew")
-
-        ttk.Label(service_frame, text="Unit:").grid(column=2, row=2, padx=5, pady=5, sticky="w")
-        self.unit_cb = ttk.Combobox(service_frame, textvariable=self.unit_var, values=["sqft", "LF"], state="readonly", width=6)
+        tb.Label(self.service_frame, text="Unit:").grid(column=2, row=2, padx=5, pady=5, sticky="w")
+        self.unit_cb = tb.Combobox(self.service_frame, textvariable=self.unit_var, values=["sqft", "LF"], state="readonly", width=6)
         self.unit_cb.grid(column=3, row=2, padx=5, pady=5, sticky="w")
-        self.unit_cb.bind("<<ComboboxSelected>>", self.update_unit_label)
-
-        self.add_service_btn = ttk.Button(service_frame, text="Add Service to Estimate", command=self.add_service)
+        self.add_service_btn = tb.Button(self.service_frame, text="Add Service to Estimate", bootstyle="success", command=self.add_service)
         self.add_service_btn.grid(column=1, row=3, padx=5, pady=10, sticky="ew")
 
-        # --- Services List Frame ---
-        list_frame = ttk.LabelFrame(self.root, text="Services in Estimate")
-        list_frame.grid(column=0, row=2, columnspan=3, padx=10, pady=10, sticky="nsew")
-        list_frame.columnconfigure(0, weight=1)
-        list_frame.rowconfigure(0, weight=1)
+        # --- Services List (Scrollable) ---
+        try:
+            from ttkbootstrap.scrolled import ScrolledFrame
+            self.scrolled = ScrolledFrame
+        except ImportError:
+            self.scrolled = None
+        self.list_frame = tb.Labelframe(self.main_frame, text="Services in Estimate", bootstyle="secondary")
+        self.list_frame.grid(row=3, column=0, columnspan=2, sticky="nsew", padx=18, pady=(0, 8), ipadx=8, ipady=8)
+        self.main_frame.rowconfigure(3, weight=2)
+        self.list_frame.rowconfigure(0, weight=1)
+        self.list_frame.columnconfigure(0, weight=1)
+        if self.scrolled:
+            self.scrolled_frame = self.scrolled(self.list_frame, autohide=True, bootstyle="info")
+            self.scrolled_frame.grid(row=0, column=0, sticky="nsew")
+            self.services_listbox = tk.Listbox(self.scrolled_frame, height=8, width=80, font="Arial 11", relief="flat", borderwidth=0, highlightthickness=0)
+            self.services_listbox.pack(fill="both", expand=True, padx=2, pady=2)
+        else:
+            self.services_listbox = tk.Listbox(self.list_frame, height=8, width=80, font="Arial 11", relief="flat", borderwidth=0, highlightthickness=0)
+            self.services_listbox.grid(row=0, column=0, sticky="nsew", padx=2, pady=2)
+        self.remove_service_btn = tb.Button(self.list_frame, text="Remove Selected Service", bootstyle="danger", command=self.remove_service)
+        self.remove_service_btn.grid(row=1, column=0, sticky="ew", padx=5, pady=5)
 
-        self.services_listbox = tk.Listbox(list_frame, height=8, width=80)
-        self.services_listbox.grid(column=0, row=0, sticky="nsew", padx=5, pady=5)
-        self.remove_service_btn = ttk.Button(list_frame, text="Remove Selected Service", command=self.remove_service)
-        self.remove_service_btn.grid(column=0, row=1, sticky="ew", padx=5, pady=5)
-
-        # --- Estimate Actions Frame ---
-        actions_frame = ttk.Frame(self.root)
-        actions_frame.grid(column=0, row=3, columnspan=3, padx=10, pady=10, sticky="ew")
-        actions_frame.columnconfigure((0,1,2,3), weight=1)
-
-        self.export_pdf_btn = ttk.Button(actions_frame, text="Export to PDF", command=self.export_to_pdf)
+        # --- Actions ---
+        self.actions_frame = tb.Frame(self.main_frame)
+        self.actions_frame.grid(row=4, column=0, columnspan=2, sticky="ew", padx=18, pady=(0, 8))
+        self.actions_frame.columnconfigure((0,1,2,3), weight=1)
+        try:
+            from ttkbootstrap.icons import Icon
+            self.export_pdf_icon = Icon("file-earmark-arrow-down").image
+            self.save_json_icon = Icon("save").image
+            self.load_json_icon = Icon("folder2-open").image
+            self.clear_icon = Icon("x-circle").image
+            self.export_pdf_btn = tb.Button(self.actions_frame, text=" Export to PDF", bootstyle="outline", command=self.export_to_pdf, image=self.export_pdf_icon, compound="left")
+            self.save_json_btn = tb.Button(self.actions_frame, text=" Save Estimate", bootstyle="outline", command=self.save_estimate, image=self.save_json_icon, compound="left")
+            self.load_json_btn = tb.Button(self.actions_frame, text=" Load Estimate", bootstyle="outline", command=self.load_estimate, image=self.load_json_icon, compound="left")
+            self.clear_btn = tb.Button(self.actions_frame, text=" Clear All", bootstyle="outline", command=self.clear_all, image=self.clear_icon, compound="left")
+        except Exception:
+            self.export_pdf_btn = tb.Button(self.actions_frame, text="Export to PDF", bootstyle="outline", command=self.export_to_pdf)
+            self.save_json_btn = tb.Button(self.actions_frame, text="Save Estimate", bootstyle="outline", command=self.save_estimate)
+            self.load_json_btn = tb.Button(self.actions_frame, text="Load Estimate", bootstyle="outline", command=self.load_estimate)
+            self.clear_btn = tb.Button(self.actions_frame, text="Clear All", bootstyle="outline", command=self.clear_all)
         self.export_pdf_btn.grid(column=0, row=0, padx=5, pady=5, sticky="ew")
-        self.save_json_btn = ttk.Button(actions_frame, text="Save Estimate", command=self.save_estimate)
         self.save_json_btn.grid(column=1, row=0, padx=5, pady=5, sticky="ew")
-        self.load_json_btn = ttk.Button(actions_frame, text="Load Estimate", command=self.load_estimate)
         self.load_json_btn.grid(column=2, row=0, padx=5, pady=5, sticky="ew")
-        self.clear_btn = ttk.Button(actions_frame, text="Clear All", command=self.clear_all)
         self.clear_btn.grid(column=3, row=0, padx=5, pady=5, sticky="ew")
 
         # --- Result Label ---
-        self.result_label = ttk.Label(self.root, text="", font=("Arial", 12, "bold"))
-        self.result_label.grid(column=0, row=4, columnspan=3, padx=10, pady=20, sticky="ew")
-        self.root.grid_rowconfigure(2, weight=1)
+        self.result_label = tb.Label(self.main_frame, text="", font=("Arial", 12, "bold"), bootstyle="primary")
+        self.result_label.grid(row=5, column=0, columnspan=2, sticky="ew", padx=18, pady=(0, 0))
+
+        # --- Footer/Total Bar (Pinned) ---
+        self.footer = tb.Frame(self.root, bootstyle="secondary")
+        self.footer.grid(row=1, column=0, sticky="ew")
+        self.root.rowconfigure(1, weight=0)
+        self.total_label = tb.Label(self.footer, text="Total: $0.00", font=("Arial", 16, "bold"), bootstyle="success", anchor="e", justify="right", padding=(12, 8))
+        self.total_label.pack(fill="x", padx=0, pady=0)
+        self.root.grid_rowconfigure(0, weight=1)
         self.root.grid_columnconfigure(0, weight=1)
+
+        # Make sure the main frame expands, footer stays pinned
+        self.root.update_idletasks()
+        self.root.minsize(700, 600)
 
     def update_services(self, event=None):
         selected_category = self.category_var.get()
@@ -158,42 +191,90 @@ class PriceEstimatorApp:
             services = list(pricing[selected_category].keys())
             self.service_cb['values'] = services
             self.service_cb.set('')
+        self.update_unit_options()
 
-    def update_unit_label(self, event=None):
-        # Optionally update label or UI if needed
-        pass
+    def update_unit_options(self, event=None):
+        # For Drywall, only allow 'sqft'. For others, allow both.
+        if self.category_var.get() == "Drywall":
+            self.unit_cb['values'] = ["sqft"]
+            self.unit_var.set("sqft")
+            self.unit_cb.config(state="readonly")
+        else:
+            self.unit_cb['values'] = ["sqft", "LF"]
+            if self.unit_var.get() not in ["sqft", "LF"]:
+                self.unit_var.set("sqft")
+            self.unit_cb.config(state="readonly")
 
     def add_service(self):
         category = self.category_var.get()
         service = self.service_var.get()
         quantity = self.quantity_var.get()
         unit = self.unit_var.get()
-        if not (category and service and quantity):
-            messagebox.showerror("Input Error", "Please fill in all service fields.")
+        errors = []
+        if not category:
+            errors.append("Category is required.")
+        if not service:
+            errors.append("Service is required.")
+        if not quantity:
+            errors.append("Quantity is required.")
+        else:
+            try:
+                q = float(quantity)
+                if q <= 0:
+                    errors.append("Quantity must be greater than zero.")
+            except ValueError:
+                errors.append("Quantity must be a number.")
+        if category and service and service not in pricing.get(category, {}):
+            errors.append("Selected service is not valid for the chosen category.")
+        if category == "Drywall" and unit != "sqft":
+            errors.append("Drywall services must use 'sqft' as the unit.")
+        if category != "Drywall" and service and unit not in service:
+            errors.append(f"Unit '{unit}' may not match the selected service.")
+        if errors:
+            messagebox.showerror("Input Error", "\n".join(errors))
             return
         try:
             quantity = float(quantity)
             price_range = pricing[category][service]
             average_price = sum(price_range) / 2
-            estimated_cost = quantity * average_price
-            service_entry = {
-                "category": category,
-                "service": service,
-                "quantity": quantity,
-                "unit": unit,
-                "average_price": average_price,
-                "estimated_cost": estimated_cost
-            }
+            # Special handling for drywall install services
+            if category == "Drywall" and "install" in service.lower():
+                import math
+                num_sheets = math.ceil(quantity / 32)
+                estimated_cost = num_sheets * average_price
+                service_entry = {
+                    "category": category,
+                    "service": service,
+                    "quantity": quantity,
+                    "unit": unit,
+                    "average_price": average_price,
+                    "estimated_cost": estimated_cost,
+                    "num_sheets": num_sheets
+                }
+            else:
+                estimated_cost = quantity * average_price
+                service_entry = {
+                    "category": category,
+                    "service": service,
+                    "quantity": quantity,
+                    "unit": unit,
+                    "average_price": average_price,
+                    "estimated_cost": estimated_cost
+                }
             self.services_list.append(service_entry)
             self.update_services_listbox()
             self.result_label.config(text="Service added. Add more or export/save estimate.")
+            self.update_total_label()
         except Exception as e:
             messagebox.showerror("Error", f"Invalid input: {e}")
 
     def update_services_listbox(self):
-        self.services_listbox.delete(0, tk.END)
+        self.services_listbox.delete(0, "end")
         for idx, s in enumerate(self.services_list, 1):
-            self.services_listbox.insert(tk.END, f"{idx}. {s['category']} - {s['service']} | Qty: {s['quantity']} {s['unit']} | Rate: ${s['average_price']:.2f} | Subtotal: ${s['estimated_cost']:.2f}")
+            if s.get("num_sheets"):
+                self.services_listbox.insert("end", f"{idx}. {s['category']} - {s['service']} | {s['quantity']} sqft ({s['num_sheets']} sheets) | Rate: ${s['average_price']:.2f} | Subtotal: ${s['estimated_cost']:.2f}")
+            else:
+                self.services_listbox.insert("end", f"{idx}. {s['category']} - {s['service']} | Qty: {s['quantity']} {s['unit']} | Rate: ${s['average_price']:.2f} | Subtotal: ${s['estimated_cost']:.2f}")
 
     def remove_service(self):
         selected = self.services_listbox.curselection()
@@ -202,64 +283,52 @@ class PriceEstimatorApp:
         idx = selected[0]
         del self.services_list[idx]
         self.update_services_listbox()
+        self.update_total_label()
 
     def calculate_total(self):
         return sum(s['estimated_cost'] for s in self.services_list)
+
+    def update_total_label(self):
+        total = self.calculate_total()
+        self.total_label.config(text=f"Total: ${total:,.2f}")
 
     def export_to_pdf(self):
         if not self.services_list:
             messagebox.showerror("No Services", "Add at least one service before exporting.")
             return
-        
-        # Generate sequential invoice number (using timestamp for uniqueness)
         import time
         from datetime import datetime
-        
         invoice_number = f"INV-{int(time.time())}"
         current_date = datetime.now().strftime("%B %d, %Y")
-        
-        # Create default filename using customer name and invoice number
         customer_name = self.client_name_var.get().strip()
         if customer_name:
-            # Clean customer name for filename (remove invalid characters)
             clean_name = "".join(c for c in customer_name if c.isalnum() or c in (' ', '-', '_')).rstrip()
             clean_name = clean_name.replace(' ', '_')
             default_filename = f"{clean_name}_{invoice_number}.pdf"
         else:
             default_filename = f"Estimate_{invoice_number}.pdf"
-        
         file_path = filedialog.asksaveasfilename(
             defaultextension=".pdf", 
             filetypes=[("PDF files", "*.pdf")],
-            initialvalue=default_filename
+            initialfile=default_filename
         )
         if not file_path:
             return
-        
         pdf = FPDF()
         pdf.add_page()
-        
-        # Business Header - Centered
         pdf.set_font("Arial", 'B', 16)
         pdf.cell(0, 10, txt="Precision Build Pros - Estimate", ln=True, align="C")
         pdf.set_font("Arial", size=10)
         pdf.cell(0, 6, txt="619 Shun Pike, Cottontown, TN 37048", ln=True, align="C")
         pdf.cell(0, 6, txt="precisionbuildprosllc@gmail.com", ln=True, align="C")
         pdf.cell(0, 6, txt="615-587-0757", ln=True, align="C")
-        
-        # Invoice number - Top right
         pdf.set_xy(-60, 15)
         pdf.set_font("Arial", 'B', 10)
         pdf.cell(0, 6, txt=f"Invoice #: {invoice_number}", ln=True, align="R")
-        
-        # Estimate Date - Left aligned
         pdf.set_xy(10, 50)
         pdf.set_font("Arial", size=11)
         pdf.cell(0, 8, txt=f"Estimate Date: {current_date}", ln=True, align="L")
-        
         pdf.ln(8)
-        
-        # Client Information
         pdf.set_font("Arial", 'B', 12)
         pdf.cell(0, 8, txt="Client Information:", ln=True)
         pdf.set_font("Arial", size=10)
@@ -268,24 +337,17 @@ class PriceEstimatorApp:
         pdf.cell(0, 6, txt=f"Phone: {self.client_phone_var.get()}", ln=True)
         pdf.cell(0, 6, txt=f"Email: {self.client_email_var.get()}", ln=True)
         pdf.ln(8)
-        
-        # Services
         pdf.set_font("Arial", 'B', 12)
         pdf.cell(0, 8, txt="Services:", ln=True)
         pdf.set_font("Arial", size=10)
         for s in self.services_list:
             pdf.cell(0, 6, txt=f"- {s['category']} | {s['service']} | Qty: {s['quantity']} {s['unit']} | Rate: ${s['average_price']:.2f} | Subtotal: ${s['estimated_cost']:.2f}", ln=True)
         pdf.ln(8)
-        
-        # Total
         pdf.set_font("Arial", 'B', 14)
         pdf.cell(0, 10, txt=f"Total Estimate: ${self.calculate_total():,.2f}", ln=True)
-        
-        # Validity Note - Bottom of document
         pdf.ln(15)
         pdf.set_font("Arial", 'I', 9)
         pdf.cell(0, 6, txt="Note: This estimate is valid for 30 days from the date issued.", ln=True, align="L")
-        
         try:
             pdf.output(file_path)
             messagebox.showinfo("Exported", f"Estimate exported to {file_path}")
@@ -329,6 +391,7 @@ class PriceEstimatorApp:
             self.client_email_var.set(client.get("email", ""))
             self.services_list = data.get("services", [])
             self.update_services_listbox()
+            self.update_total_label()
             self.result_label.config(text="Estimate loaded.")
         except Exception as e:
             messagebox.showerror("Load Error", str(e))
@@ -344,26 +407,10 @@ class PriceEstimatorApp:
         self.unit_var.set("sqft")
         self.services_list = []
         self.update_services_listbox()
+        self.update_total_label()
         self.result_label.config(text="")
 
-    # Optionally, keep the old single-service estimate for reference
-    def calculate_price(self):
-        category = self.category_var.get()
-        service = self.service_var.get()
-        quantity = self.quantity_var.get()
-        try:
-            quantity = float(quantity)
-            price_range = pricing[category][service]
-            average_price = sum(price_range) / 2
-            estimated_cost = quantity * average_price
-            self.result_label.config(
-                text=f"Estimated Cost: ${estimated_cost:,.2f}\n(Average rate: ${average_price:.2f} per unit)"
-            )
-        except Exception as e:
-            self.result_label.config(text="Error: Please check your inputs.")
-
-
 if __name__ == "__main__":
-    root = tk.Tk()
-    app = PriceEstimatorApp(root)
-    root.mainloop()
+    app = tb.Window(themename="superhero")  # Dark, premium theme
+    PriceEstimatorApp(app)
+    app.mainloop()

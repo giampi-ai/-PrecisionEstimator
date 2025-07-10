@@ -37,12 +37,9 @@ from __future__ import annotations
 import os
 import struct
 import sys
-from typing import IO, Any, cast
+from typing import IO, TYPE_CHECKING, Any, Tuple, cast
 
 from . import Image, ImageFile
-from ._util import DeferredError
-
-TYPE_CHECKING = False
 
 
 def isInt(f: Any) -> int:
@@ -157,7 +154,7 @@ class SpiderImageFile(ImageFile.ImageFile):
             self.rawmode = "F;32F"
         self._mode = "F"
 
-        self.tile = [ImageFile._Tile("raw", (0, 0) + self.size, offset, self.rawmode)]
+        self.tile = [("raw", (0, 0) + self.size, offset, (self.rawmode, 0, 1))]
         self._fp = self.fp  # FIXME: hack
 
     @property
@@ -181,8 +178,6 @@ class SpiderImageFile(ImageFile.ImageFile):
             raise EOFError(msg)
         if not self._seek_check(frame):
             return
-        if isinstance(self._fp, DeferredError):
-            raise self._fp.ex
         self.stkoffset = self.hdrlen + frame * (self.hdrlen + self.imgbytes)
         self.fp = self._fp
         self.fp.seek(self.stkoffset)
@@ -192,7 +187,7 @@ class SpiderImageFile(ImageFile.ImageFile):
     def convert2byte(self, depth: int = 255) -> Image.Image:
         extrema = self.getextrema()
         assert isinstance(extrema[0], float)
-        minimum, maximum = cast(tuple[float, float], extrema)
+        minimum, maximum = cast(Tuple[float, float], extrema)
         m: float = 1
         if maximum != minimum:
             m = depth / (maximum - minimum)
@@ -214,27 +209,26 @@ class SpiderImageFile(ImageFile.ImageFile):
 
 
 # given a list of filenames, return a list of images
-def loadImageSeries(filelist: list[str] | None = None) -> list[Image.Image] | None:
+def loadImageSeries(filelist: list[str] | None = None) -> list[SpiderImageFile] | None:
     """create a list of :py:class:`~PIL.Image.Image` objects for use in a montage"""
     if filelist is None or len(filelist) < 1:
         return None
 
-    byte_imgs = []
+    imglist = []
     for img in filelist:
         if not os.path.exists(img):
             print(f"unable to find {img}")
             continue
         try:
             with Image.open(img) as im:
-                assert isinstance(im, SpiderImageFile)
-                byte_im = im.convert2byte()
+                im = im.convert2byte()
         except Exception:
             if not isSpiderImage(img):
                 print(f"{img} is not a Spider image file")
             continue
-        byte_im.info["filename"] = img
-        byte_imgs.append(byte_im)
-    return byte_imgs
+        im.info["filename"] = img
+        imglist.append(im)
+    return imglist
 
 
 # --------------------------------------------------------------------
@@ -272,7 +266,7 @@ def makeSpiderHeader(im: Image.Image) -> list[bytes]:
 
 
 def _save(im: Image.Image, fp: IO[bytes], filename: str | bytes) -> None:
-    if im.mode != "F":
+    if im.mode[0] != "F":
         im = im.convert("F")
 
     hdr = makeSpiderHeader(im)
@@ -284,7 +278,7 @@ def _save(im: Image.Image, fp: IO[bytes], filename: str | bytes) -> None:
     fp.writelines(hdr)
 
     rawmode = "F;32NF"  # 32-bit native floating point
-    ImageFile._save(im, fp, [ImageFile._Tile("raw", (0, 0) + im.size, 0, rawmode)])
+    ImageFile._save(im, fp, [("raw", (0, 0) + im.size, 0, (rawmode, 0, 1))])
 
 
 def _save_spider(im: Image.Image, fp: IO[bytes], filename: str | bytes) -> None:

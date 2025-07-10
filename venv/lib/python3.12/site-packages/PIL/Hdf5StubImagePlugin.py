@@ -10,7 +10,6 @@
 #
 from __future__ import annotations
 
-import os
 from typing import IO
 
 from . import Image, ImageFile
@@ -33,7 +32,7 @@ def register_handler(handler: ImageFile.StubHandler | None) -> None:
 
 
 def _accept(prefix: bytes) -> bool:
-    return prefix.startswith(b"\x89HDF\r\n\x1a\n")
+    return prefix[:8] == b"\x89HDF\r\n\x1a\n"
 
 
 class HDF5StubImageFile(ImageFile.StubImageFile):
@@ -41,11 +40,13 @@ class HDF5StubImageFile(ImageFile.StubImageFile):
     format_description = "HDF5"
 
     def _open(self) -> None:
+        offset = self.fp.tell()
+
         if not _accept(self.fp.read(8)):
             msg = "Not an HDF file"
             raise SyntaxError(msg)
 
-        self.fp.seek(-8, os.SEEK_CUR)
+        self.fp.seek(offset)
 
         # make something up
         self._mode = "F"

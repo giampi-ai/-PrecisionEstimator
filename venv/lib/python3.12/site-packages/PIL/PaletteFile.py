@@ -32,7 +32,7 @@ class PaletteFile:
 
             if not s:
                 break
-            if s.startswith(b"#"):
+            if s[:1] == b"#":
                 continue
             if len(s) > 100:
                 msg = "bad palette file"

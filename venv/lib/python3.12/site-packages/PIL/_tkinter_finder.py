@@ -1,4 +1,5 @@
-"""Find compiled module linking to Tcl / Tk libraries"""
+""" Find compiled module linking to Tcl / Tk libraries
+"""
 
 from __future__ import annotations
 

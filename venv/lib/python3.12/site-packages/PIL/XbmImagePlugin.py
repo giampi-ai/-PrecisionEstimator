@@ -38,7 +38,7 @@ xbm_head = re.compile(
 
 
 def _accept(prefix: bytes) -> bool:
-    return prefix.lstrip().startswith(b"#define")
+    return prefix.lstrip()[:7] == b"#define"
 
 
 ##
@@ -67,7 +67,7 @@ class XbmImageFile(ImageFile.ImageFile):
         self._mode = "1"
         self._size = xsize, ysize
 
-        self.tile = [ImageFile._Tile("xbm", (0, 0) + self.size, m.end())]
+        self.tile = [("xbm", (0, 0) + self.size, m.end(), None)]
 
 
 def _save(im: Image.Image, fp: IO[bytes], filename: str | bytes) -> None:
@@ -85,7 +85,7 @@ def _save(im: Image.Image, fp: IO[bytes], filename: str | bytes) -> None:
 
     fp.write(b"static char im_bits[] = {\n")
 
-    ImageFile._save(im, fp, [ImageFile._Tile("xbm", (0, 0) + im.size)])
+    ImageFile._save(im, fp, [("xbm", (0, 0) + im.size, 0, None)])
 
     fp.write(b"};\n")
 
